@@ -22,7 +22,7 @@ Understood as such, the components of an argument are its premise(s) and its con
 
 One of the primary tasks in creating the LSAT is for test developers to identify arguments from a variety of sources (journal papers, news articles, etc.) to use in the LSAT.
 
-This project aims to implement machine learning to develop a model which can analyze paragraph sections of text. A successful model will be capable of identifying whether or not the text contains an argument. The model will idendify arguments for LSAT test developers which saves them time. They can then focus on creating questions for the LSAT rather than on identifying arguments from which to develop questions.
+This project aims to implement machine learning to develop a model which can analyze paragraph sections of text. A successful model will be capable of identifying whether or not the text contains an argument. The model will identify arguments for LSAT test developers which saves them time. They can then focus on creating questions for the LSAT rather than on identifying arguments from which to develop questions.
 
 ### Methods and Data:
 
