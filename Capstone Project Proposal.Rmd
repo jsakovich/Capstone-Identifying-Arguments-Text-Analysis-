@@ -1,0 +1,40 @@
+---
+title: "Capstone Project: Identifying Arguments"
+author: "by Jeremy Sakovich"
+date: for Law School Admission Council
+output: html_document
+---
+
+### The Problem: Identifying Arguments
+The Law School Admission Council (LSAC) (<https://www.lsac.org/>) is responsible for creating the Law School Admission Test (LSAT). The LSAT is used as an admission requirement for law schools in the U.S., Canada, and Australia. There are on average 100,000+ LSATs taken and scored every year. 
+
+The LSAT is meant to measure **critical thinking skills** by presenting test takers with a variety of arguments and asking questions about the arguments.  
+
+A standard view of arguments is that an argument is an attempt to convince someone of the truth of some statement (the conclusion). This attempt to convince someone of the truth of a conclusion occurs by using a single statement or a set of statements (the premises). The premises are intended to be structured such as to provide *logical* support of the truth of the conclusion. That is, the premises, if true, are meant to make it reasonable to *infer* the truth of the conclusion based on the truth of the premises. 
+
+Characteristics of an argument:
+
+* Arguments only contain one conclusion. 
+* An argument might contain a single premise.
+* An argument might contain a set of premises. 
+
+Understood as such, the components of an argument are its premise(s) and its conclusion. 
+
+One of the primary tasks in creating the LSAT is for test developers to identify arguments from a variety of sources (journal papers, news articles, etc.) to use in the LSAT.
+
+This project aims to implement machine learning to develop a model which can analyze paragraph sections of text. A successful model will be capable of identifying whether or not the text contains an argument. The model will idendify arguments for LSAT test developers which saves them time. They can then focus on creating questions for the LSAT rather than on identifying arguments from which to develop questions.
+
+### Methods and Data:
+
+This project involves **text analysis** and **natural language processing** and requires creating both a training dataset and a test dataset. The datasets used for the project will be generated from philosophical texts containing well-known arguments, existing LSAT practice question stems, and from a variety of non-argument texts such as descriptive texts from news articles or literature. 
+
+This data will be gathered by webscrabing, or manually entered. Arguments will be manually tagged to create training and test datasets. 
+
+### Deliverables:
+
+Deliverables will include code and a paper explaining the project. 
+
+
+
+
+
