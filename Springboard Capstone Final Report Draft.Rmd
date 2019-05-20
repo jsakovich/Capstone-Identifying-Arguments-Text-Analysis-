@@ -1,0 +1,158 @@
+---
+title: 'Capstone Project Report: Argument Identification'
+author: "Jeremy Sakovich"
+date: ""
+output: html_document
+---
+
+## Overview:
+
+This paper presents a project in Computational Argumentation for the purpose of Argument Identification. This project is meant to support IBM's Project Debater team in their research into the field of Computational Argumentation (https://www.research.ibm.com/artificial-intelligence/project-debater/). One of the most time consuming tasks in Computational Argumentation is the identification and classification of texts for the purpose of generating corpuses appropriate for use in machine learning. At the most fundamental level Computational Argumentation requires distinguishing arguments from non-arguments. This primary step in Computational Argumentation must occur before the tagging and annotation of various specific features of arguments. It is, then, an essential step in the process of generating corpuses capable of being maniputaled and studied with computers. The goal of this project is to train a machine learning model suitable for the classification of various texts as arguments or non-arguments. It is thought that such a model, if successful, can assist IBM in generating data appropriate for the Project Debater research project.
+
+## Introduction:
+
+One of the goals of Artifical Intelligence researchers is to create computer applications and systems which carry out tasks involving what we consider human-level intelligence. One of most distinctive features of human intelligence is the use of reason to draw inferences about the truths of various statements. Often reasoning involves using a statement, or set of statements, to try to offer support of the truth of a controversial position. The presentation of a reason, or set of reasons, in support of a controversial position is considered an "argument". Thus, an important and significant accomplishment in the field of Artificial Intelligence would be the generation of computer entities capable of engaging in argument.
+
+Arguments are useful in society, at least in part, because they provide a peaceful way of resolving disputes and disagreements. Arguments provide a method for communication about controversial topics which moves beyond mere disagreement. Historically, the study of arguments falls within the scope of Rhetoric and Logic. Aristotle is famous for discussing each of these and is often considered a founder of Logic. He is also one of the first people to offer a formal system of Logic. 
+
+AI researchers in a young field called Computational Argumentation also study arguments. Computational Arugmentation research invovles the study of arguments in texts and natural langauge and uses computers to identify various reasoning forms in texts. This includes picking out premises and conclusions as well as various argument forms and structures, for example.
+
+Possible applications for successful Computational Argumentation AI include: fallacy detection, analysis of political discourse, sentiment analysis for controversial topics, automatic argument strength rankings, discourse type classification, etc,.
+
+## Approach: 
+
+The approach to the problem of argument identification was to identify arguments at the paragraph level. This was carried out by looking for self-contained arguments where the text presented an attempt to infer the truth of a conclusion from some premise, or set of premisses. 
+
+The purpose of employing this approach is to help try to create a way to "bootstrap" new datasets for further study and testing for various existing models. Many arguments occur across longer portions of texts than at the paragraph level. However, many longer arguments can be broken into subarguments which often occur at the level of paragraphs. If it is possible to identify arguments at the paragraph level, it might be possible to employ the techniques involved to identify longer arguments. 
+
+There are limitations to the approach of identifying arguments at the paragraph level, however. The main limitiation is that many paragraphs might contain sections of an argument constructed across a larger text. Thus, this approach is likely to fail to identify premisses or conclusions present at the paragraph level and will also fail to identify many paragraphs which do contain arguments. It is, for better or worse, not a fine grained approach to the problem.     
+
+### Data 
+
+### 1.1: Collection
+
+The data for this project was collected manually from online sources including: Law School Admission Test sample argument questions, Descartes's *Meditations*, and transcripts from United Nations Security Council meetings. 
+
+The main fields of this data are the text and the tag. Also included is information about the source of the text.
+
+### 1.2: Cleaning, Annotation, and Preprocessing
+
+The texts used for this project were all annotated manually. In total, there were 606 paragraphs collected and tagged. Each paragraph was collected into a CSV file, read carefully, and tagged with a "Yes" or "No" to indicated whether it contained an argument. 
+
+Limitations: For the purpose of this project, no particular premisses or conclusions were tagged. The main criteria for a paragraph to qualify as an argument was that the paragraphs included at least one premise that was used to support the truth of a belief, or conclusion. There were some paragraphs which could have been interpreted to contain a kind of argument for a call to an action. That is, where the arguer was aiming to convince someone else to act or behave in some manner rather than to believe some statement as true. In most cases, the arguer was making the claim that some other person, or persons, "should" or "should not" *do* something.
+
+These "call to action" paragraphs were ignored because they are not clear instances of reasoning even if they are clear instances of trying to convince someone of something. Thus the approach in this study was biased toward viewing arguments from the standpoint of instances containing logical inferences as opposed to instances utilizing broader rhetorical moves. Some might find this approach problematic supposing they view the definition of the term "argument" in a less limited scope.
+
+Another approach to this problem could be to tag particular elements of arguments and to try to use these features to identify arguments in new data. The approach of tagging particular argument features was ignored for the present project simply because the goal of the project is to see how much traction could be made at training a model to identify arguments without the time intensive process of tagging particular argument features. If it's possible to classify argument texts with some fairly high level of accuracy, then the texts identified using that model could be examined and tagged by researchers for further study. 
+
+After importing the raw data the corpus was created:
+
+``` 
+corpus = Corpus(VectorSource(argID$Passage))  
+```
+
+After importing the data and converting it into a corpus, the corpus went through the following "cleaning" process:
+
+A) Converting all text to lower case:
+
+``` 
+corpus = tm_map(corpus, tolower) 
+```
+
+B) Removing punctuation:
+
+```
+corpus = tm_map(corpus, removePunctuation)
+```
+
+C) Removing stop words:
+
+``` 
+corpus = tm_map(corpus, removeWords, c(stopwords("english")))
+```
+
+D) Stemming words in the corpus:
+
+``` 
+corpus = tm_map(corpus, stemDocument) 
+```
+
+## Findings:
+
+The preprocessing and data cleaning were in preparation for applying machine learning to this problem. I viewed the problem of argument identification as a classification problem. I opted to use a standard Bag of Words approach and applying a decision tree model to classify the texts. 
+
+Prepping the data for machine learning began by creating a document term matrix:
+
+``` 
+frequencies = DocumentTermMatrix(corpus) 
+```
+
+Then the sparse terms are removed from the corpus (it was assumed that such terms may skew the model):
+
+```
+sparse = removeSparseTerms(frequencies, 0.995)
+argIDSparse = as.data.frame(as.matrix(sparse))
+colnames(argIDSparse) = make.names(colnames(argIDSparse))
+```
+
+The next major step is to split the data into a training set and into a test set. It's important to set the seed for repeatability of results:
+
+```
+set.seed(123)
+split = sample.split(argIDSparse$Argument, SplitRatio = 0.7)
+
+trainSparse = subset(argIDSparse, split == TRUE)
+testSparse = subset(argIDSparse, split == FALSE)
+```
+
+It is now possible to run the rpart classification model on the training set:
+
+```
+argIDCART = rpart(Argument ~ ., 
+                  data = trainSparse, 
+                  method = "class")
+```
+
+Next plot the decision tree:
+ 
+```
+prp(argIDCART) 
+
+```
+
+From here it's time to test the model with the training dataset: 
+
+```
+predictCART = predict(argIDCART, 
+                      newdata = testSparse, 
+                      type = "class")
+```
+
+A review of the confusion matrix shows the accuracy of the model yields is approximately 78%:
+
+```
+table(testSparse$Argument, predictCART)
+
+table(testSparse$Argument)
+```
+
+## Conclusion and Suggestions:
+
+The training dataset is skewed heavily with text from United Nations Security Council transcripts. The skewed dataset likely puts a heavier weight on words related to foreign policy rather than on words that are most often appearing in arguments writ large. The weighting of the words in the ddecision tree for this model may make the model less effective at identifying arguments from text sources other than United Nations transcripts.  
+
+One suggestion may be to get more data from other sources and to more evenly distribute the training data across a variety of argument sources. A model retrained in this manner might yield better results. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
