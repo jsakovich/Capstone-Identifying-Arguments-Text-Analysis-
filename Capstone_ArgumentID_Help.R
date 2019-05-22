@@ -66,11 +66,13 @@ text(argIDCART)	# - add labels
 prp(argIDCART) # - nicer plot
 
 ### plot variable importance
-# I'm stuck here - I can't figure out how to plot the variable importance
+# I'm stuck here - I can plot the decision tree, but I can't figure out how to plot the variable importance in a way that is helpful to look at
 # I was able to extract it with: as.data.frame(argIDCART$variable.importance)
 # But I can't figure out how to plot just the variable importance
 
 argPlot <- as.data.frame(argIDCART$variable.importance) # convert variable importance from model to data frame
+
+argPlot 
 
 plot.default(argPlot) # plot data frame with variable importance
 
