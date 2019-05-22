@@ -81,12 +81,14 @@ argDF <- argIDCART$frame
 plot(argDF [1:2])
 
 ### --- prune the tree
-printcp(argIDCART)
+pruneFrame <- as.data.frame(printcp(argIDCART))
 # - optimal value for the CP parameter
-# - note: it is found where xerror has its minimum:
-optCP <- argIDCART$cptable[which.min(argIDCART$cptable[,"xerror"]),"CP"]
-argIDCART_pr <- prune(argIDCART, cp = optCP)
-prp(argIDCART_pr)
+xerror_min <- min(pruneFrame$xerror) 
+xerror_min_sd <- pruneFrame$xstd[which(pruneFrame$xerror == min(pruneFrame$xerror))]
+limits <- c(xerror_min - xerror_min_sd, xerror_min + xerror_min_sd)
+pruneFrame <- filter(pruneFrame, 
+                     pruneFrame$xerror <= limits[2] & xerror >= limits[1])
+optimal_cp <- pruneFrame$CP[which(pruneFrame$nsplit == min(pruneFrame$nsplit))]
 
 # use model to predict for test data
 
