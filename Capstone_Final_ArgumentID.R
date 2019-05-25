@@ -70,9 +70,7 @@ prp(argIDCART) # - nicer plot
 
 ### plot variable importance using ggplot()
 
-argPlot <- as.data.frame(argIDCART$variable.importance) # convert variable importance from model to data frame
-
-df <- data.frame(imp = argIDCART$variable.importance)
+df <- data.frame(imp = argIDCART$variable.importance) # convert variable importance to data frame
 df2 <- df %>% 
   tibble::rownames_to_column() %>% 
   dplyr::rename("variable" = rowname) %>% 
@@ -87,9 +85,9 @@ ggplot2::ggplot(df2) +
 
 ggplot2::ggplot(df2) +
   geom_segment(aes(x = variable, y = 0, xend = variable, yend = imp), 
-               size = 1.5, alpha = 0.7) +
+               size = 1.2, alpha = 0.6) +
   geom_point(aes(x = variable, y = imp, col = variable), 
-             size = 4, show.legend = F) +
+             size = 3.2, show.legend = F) +
   coord_flip() +
   theme_bw()
 
