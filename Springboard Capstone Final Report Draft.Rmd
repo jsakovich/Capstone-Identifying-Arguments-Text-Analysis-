@@ -7,11 +7,13 @@ output: html_document
 
 ## Overview:
 
-This paper presents a project in Computational Argumentation for the purpose of Argument Identification. This project is meant to support IBM's Project Debater team in their research into the field of Computational Argumentation (https://www.research.ibm.com/artificial-intelligence/project-debater/). One of the most time consuming tasks in Computational Argumentation is the identification and classification of texts for the purpose of generating corpuses appropriate for use in machine learning. At the most fundamental level Computational Argumentation requires distinguishing arguments from non-arguments. This primary step in Computational Argumentation must occur before the tagging and annotation of various specific features of arguments. It is, then, an essential step in the process of generating corpuses capable of being maniputaled and studied with computers. The goal of this project is to train a machine learning model suitable for the classification of various texts as arguments or non-arguments. It is thought that such a model, if successful, can assist IBM in generating data appropriate for the Project Debater research project.
+This paper presents a project in Computational Argumentation for the purpose of Argument Identification. This project is meant to support IBM's Project Debater team in their research into the field of Computational Argumentation (https://www.research.ibm.com/artificial-intelligence/project-debater/). 
+
+One of the most time consuming tasks in Computational Argumentation is the identification and classification of texts for the purpose of generating corpuses appropriate for use in machine learning. At the most fundamental level Computational Argumentation requires distinguishing arguments from non-arguments. This primary step in Computational Argumentation must occur before the tagging and annotation of various specific features of arguments. It is, then, an essential step in the process of generating corpuses capable of being maniputaled and studied with computers. The goal of this project is to train a machine learning model suitable for the classification of various texts as arguments or non-arguments. It is thought that such a model, if successful, can assist IBM in generating data appropriate for the Project Debater research project.
 
 ## Introduction:
 
-One of the goals of Artifical Intelligence researchers is to create computer applications and systems which carry out tasks involving what we consider human-level intelligence. One of most distinctive features of human intelligence is the use of reason to draw inferences about the truths of various statements. Often reasoning involves using a statement, or set of statements, to try to offer support of the truth of a controversial position. The presentation of a reason, or set of reasons, in support of a controversial position is considered an "argument". Thus, an important and significant accomplishment in the field of Artificial Intelligence would be the generation of computer entities capable of engaging in argument.
+One of the goals of Artifical Intelligence researchers is to create computer applications and systems which carry out tasks involving what we consider human-level intelligence. One of the most distinctive features of human intelligence is the use of reason to draw inferences about the truths of various statements. Often reasoning involves using a statement, or set of statements, to try to offer support of the truth of a controversial position. The presentation of a reason, or set of reasons, in support of a controversial position is considered an "argument". Thus, an important and significant accomplishment in the field of Artificial Intelligence would be the generation of computer entities capable of engaging in argument.
 
 Arguments are useful in society, at least in part, because they provide a peaceful way of resolving disputes and disagreements. Arguments provide a method for communication about controversial topics which moves beyond mere disagreement. Historically, the study of arguments falls within the scope of Rhetoric and Logic. Aristotle is famous for discussing each of these and is often considered a founder of Logic. He is also one of the first people to offer a formal system of Logic. 
 
@@ -115,10 +117,40 @@ argIDCART = rpart(Argument ~ .,
 
 Next plot the decision tree:
  
+```{r rpart.plot, fig.width=4, fig.height=3, message=FALSE}
+library(rpart.plot)
+prp(argIDCART)
 ```
-prp(argIDCART) 
 
+It is also helpful to plot the variable importance of the features used in the model.
+
+Here is how to do that with ggplot2:
+
+```{r ggplot2, fig.width=4, fig.height=3, message=FALSE}
+library(ggplot2)
+df <- data.frame(imp = argIDCART$variable.importance) # convert variable importance to data frame
+df2 <- df %>% 
+  tibble::rownames_to_column() %>% 
+  dplyr::rename("variable" = rowname) %>% 
+  dplyr::arrange(imp) %>%
+  dplyr::mutate(variable = forcats::fct_inorder(variable))
+ggplot2::ggplot(df2) +
+  geom_col(aes(x = variable, y = imp),
+           col = "black", show.legend = F) +
+  coord_flip() +
+  scale_fill_grey() +
+  theme_bw()
+
+ggplot2::ggplot(df2) +
+  geom_segment(aes(x = variable, y = 0, xend = variable, yend = imp), 
+               size = 1.2, alpha = 0.6) +
+  geom_point(aes(x = variable, y = imp, col = variable), 
+             size = 3.2, show.legend = F) +
+  coord_flip() +
+  theme_bw()
+  
 ```
+
 
 From here it's time to test the model with the training dataset: 
 
@@ -127,6 +159,7 @@ predictCART = predict(argIDCART,
                       newdata = testSparse, 
                       type = "class")
 ```
+
 
 A review of the confusion matrix shows the accuracy of the model yields is approximately 78%:
 
@@ -138,9 +171,41 @@ table(testSparse$Argument)
 
 ## Conclusion and Suggestions:
 
-The training dataset is skewed heavily with text from United Nations Security Council transcripts. The skewed dataset likely puts a heavier weight on words related to foreign policy rather than on words that are most often appearing in arguments writ large. The weighting of the words in the ddecision tree for this model may make the model less effective at identifying arguments from text sources other than United Nations transcripts.  
+The training dataset is skewed heavily with text from United Nations Security Council transcripts. The skewed dataset puts a heavier weight on words related to foreign policy rather than on words that are most often appearing in arguments writ large. The weighting of the words in the ddecision tree for this model may make the model less effective at identifying arguments from text sources other than United Nations transcripts.
 
-One suggestion may be to get more data from other sources and to more evenly distribute the training data across a variety of argument sources. A model retrained in this manner might yield better results. 
+It's worth looking to see that the other texts were not as successful:
+
+```
+### --- Check how accuracy across the
+### --- different types of `Text` in the argID data.frame:
+argID$Split <- split
+argID_checkTextAcc <- filter(argID, !split)
+argID_checkTextAcc$Prediction <- predictCART_pr
+cMatrixPerText <- lapply(unique(argID_checkTextAcc$Text), 
+                         function(x) {
+                           d <- filter(argID_checkTextAcc, 
+                                       Text == x)
+                           return(table(d$Argument, d$Prediction))
+                         })
+names(cMatrixPerText) <- unique(argID_checkTextAcc$Text)
+
+```
+
+Here the other texts are inspected:
+
+```
+# - inspect: 
+cMatrixPerText$`Test Prep`
+cMatrixPerText$`Meditation One`
+cMatrixPerText$`Meditation Two`
+cMatrixPerText$`Meditation Three`
+cMatrixPerText$`Meditation Six`
+cMatrixPerText$`8500th Session`
+```
+
+One suggestion may be to get more data from other sources and to more evenly distribute the training data across a variety of argument sources. A model retrained in this manner might yield better results. A second suggestion would be to try training a model using *indicator* words such as "because", "therefore", "consequently" and so forth. 
+
+
 
 
 
