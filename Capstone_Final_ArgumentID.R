@@ -70,7 +70,7 @@ prp(argIDCART) # - nicer plot
 
 ### plot variable importance using ggplot()
 
-df <- data.frame(imp = argIDCART$variable.importance) # convert variable importance to data frame
+df <- data.frame(imp = argIDCART$variable.importance[1:9]) # convert variable importance to data frame
 df2 <- df %>% 
   tibble::rownames_to_column() %>% 
   dplyr::rename("variable" = rowname) %>% 
@@ -98,6 +98,29 @@ printcp(argIDCART)
 optCP <- argIDCART$cptable[which.min(argIDCART$cptable[,"xerror"]),"CP"]
 argIDCART_pr <- prune(argIDCART, cp = optCP)
 prp(argIDCART_pr)
+
+### plot variable importance for pruned tree using ggplot()
+
+pr_df <- data.frame(imp = argIDCART_pr$variable.importance[1:9]) # convert variable importance to data frame
+pr_plot_df <- pr_df %>% 
+  tibble::rownames_to_column() %>% 
+  dplyr::rename("variable" = rowname) %>% 
+  dplyr::arrange(imp) %>%
+  dplyr::mutate(variable = forcats::fct_inorder(variable))
+ggplot2::ggplot(pr_plot_df) +
+  geom_col(aes(x = variable, y = imp),
+           col = "black", show.legend = F) +
+  coord_flip() +
+  scale_fill_grey() +
+  theme_bw()
+
+ggplot2::ggplot(pr_plot_df) +
+  geom_segment(aes(x = variable, y = 0, xend = variable, yend = imp), 
+               size = 1.2, alpha = 0.6) +
+  geom_point(aes(x = variable, y = imp, col = variable), 
+             size = 3.2, show.legend = F) +
+  coord_flip() +
+  theme_bw()
 
 # use model to predict for test data
 
