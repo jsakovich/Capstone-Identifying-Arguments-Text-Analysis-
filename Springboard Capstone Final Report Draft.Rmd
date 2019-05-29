@@ -1,0 +1,317 @@
+---
+title: 'Capstone Project Report: Argument Identification'
+author: "Jeremy Sakovich"
+date: ""
+output: html_document
+---
+
+## Abstract:
+
+This article presents a project in Computational Argumentation. The project uses machine learning to develop a model capable of identifying arguments in paragraph sized texts. 
+
+In this project, the problem of argument identification was considered a classification problem. The problem was addressed with a standard Bag of Words approach and utilized a decision tree model to classify the texts. First, a corpus was created from manually tagged paragraphs of text. The corpus was then analyzed, and a decision tree machine learning model was trained on a subset of the data. When tested against the remaining data it was discovered that the model held 78% accuracy in predicting whether or not a paragraph of text contained an argument.
+
+## Introduction: Why Argument Identification?
+
+One of the goals of Artifical Intelligence researchers is to create computer applications and systems which carry out tasks involving what we consider human-level intelligence. One of the most distinctive features of human intelligence is the use of reason to draw inferences about the truths of various statements. Often reasoning involves using a non-controversial statement, or set of statements, to try to offer support of the truth of a further, often more controversial statement. The presentation of a statement, or set of statements, in support of the truth of a controversial  position (a conclusion) is considered an "argument". Thus, an important and significant accomplishment in the field of Artificial Intelligence would be the generation of computer entities capable of engaging in argument. 
+
+Argument identification is an important step toward creating an Artificial Intelligence capable of engaging in reasoning because a fundamental step for such a system is that it distinguish arguments from other sorts of discourse including: instructions, unsupported opinions, lyrics, fiction, and so forth. 
+
+Historically, the study of arguments falls within the scope of Rhetoric and Logic. Aristotle is famous for discussing each of these and he is often considered a founder of Logic. He is also one of the first to offer a formal system of Logic.Today arguments are commonly studied in the non-technical humanities fields of Philosophy, Law, Logic, and Critical Thinking.
+
+However, the study of arguments by Computer Scientists and AI researchers is now gaining popularity in a field called Computational Argumentation. Computational Arugmentation involves using computers in the study of arguments in texts and natural langauge and also involves using computers to identify various reasoning forms. 
+
+There are some major players today in the field of Computational Argumentation including companies such as IBM. For example, IBM's Project Debater team is focused on developing applications for Computational Argumentation (https://www.research.ibm.com/artificial-intelligence/project-debater/). 
+
+Possible applications for Computational Argumentation AI include: fallacy detection, analysis of political discourse, sentiment analysis for controversial topics, automatic argument strength rankings, discourse type classification, among others.
+
+## Approach: 
+
+The approach to the problem of argument identification used here was to identify arguments at the paragraph level. This was carried out by looking for self-contained arguments where the text presented an attempt to infer the truth of a conclusion from some premise, or set of premisses. 
+
+The purpose of employing this approach was to start at the simplest level of argument identification. Arguments are often complex. Moreover, many arguments occur across portions of texts which are longer than paragraphs. However, most longer arguments can be broken into smaller subarguments. Subarguments can also be complex, but many of them often occur at the level of paragraphs. If it is possible to identify arguments at the paragraph level, it might be possible to build out this technique to identify longer arguments. 
+
+There are limitations to the approach of identifying arguments at the paragraph level, however. The main limitiation is that many paragraphs might contain sections of an argument constructed across a larger text. Thus, this approach is likely to fail to identify premisses or conclusions present at the paragraph level. It will also, of course, fail to identify some paragraphs containing arguments. It is, for better or worse, a preliminary effort and not a fine grained approach to the problem of argument identification.
+
+## Data 
+
+### 1.1: Collection
+
+The data for this project was collected manually from online sources including: Law School Admission Test sample argument questions, Descartes's *Meditations*, and transcripts from United Nations Security Council meetings. 
+
+The main fields of this data are the text and the tag, but there are other fields which include information about the source of the text.
+
+### 1.2: A note on Annotation and Preprocessing
+
+The texts used for this project were all annotated manually. In total, there were 605 paragraphs collected and tagged. Each paragraph was collected into a CSV file, read, and tagged manually with a "Yes" or "No" to indicated whether it contained an argument. 
+
+Limitations: For the purpose of this project, no particular premisses or conclusions were tagged. The main criteria for a paragraph to qualify as an argument was that the paragraphs included at least one premise that was used to support the truth of a belief, or conclusion. There were some paragraphs which could have been interpreted to contain a kind of argument for a call to an action. That is, where the arguer was aiming to convince someone else to act or behave in some manner rather than to believe some statement as true. In most cases, the arguer was making the claim that some other person, or persons, "should" or "should not" *do* something.
+
+These "call to action" paragraphs were ignored - not tagged as arguments - because they are not clear instances of reasoning, even if they are clear instances of someone trying to convince someone else to do something. Thus the approach in this study was biased toward viewing arguments from the standpoint of instances containing logical inferences. This approach is opposed to one where instances which utilize broader rhetorical moves would classify as arguments. Some, then, might find this approach problematic supposing they view the definition of the term "argument" in a less limited scope.
+
+Another approach to this problem could involve tagging particular elements of arguments and using those features to train a model to identify arguments. The approach of tagging particular argument features was ignored for the present project to see how much traction could be had at solving the problem without engaging in the time intensive task of tagging particular premisses and conclusions. It is simpler to identify a text as containing an argument than it is to manually identify each part of the argument. 
+
+## Walking Through of the Code:
+
+Load libraries:
+```{r, echo=TRUE, eval=TRUE, message=FALSE}
+library(tm)
+library(SnowballC)
+library(rpart)
+library(rpart.plot)
+library(caTools)
+library(dplyr)
+library(tidyverse)
+
+```
+
+Import dataset:
+``` {r}
+library(readr)
+Argument_ID_Raw_Dataset <- 
+  read.csv("Argument ID Raw Dataset.csv", 
+           stringsAsFactors = FALSE)
+
+argID = Argument_ID_Raw_Dataset
+rm(Argument_ID_Raw_Dataset)
+
+```
+
+Examine the structure of the data:
+
+```{r}
+str(argID)
+```
+
+Create corpus:
+
+```{r}
+corpus = Corpus(VectorSource(argID$Passage))
+```
+
+Perform data cleaning steps:
+
+* all to lower case
+* remove punctuation
+* remove stop words 
+* stem words in corpus
+
+```{r, warning=FALSE}
+corpus = tm_map(corpus, tolower)
+corpus = tm_map(corpus, removePunctuation)
+corpus = tm_map(corpus, removeWords, c(stopwords("english")))
+corpus = tm_map(corpus, stemDocument)
+
+```
+
+Create document term matrix from corpus:
+
+```{r}
+
+frequencies = DocumentTermMatrix(corpus)
+```
+
+Remove sparse terms:
+```{r}
+
+sparse = removeSparseTerms(frequencies, 0.995)
+argIDSparse = as.data.frame(as.matrix(sparse))
+colnames(argIDSparse) = make.names(colnames(argIDSparse))
+```
+
+
+Prepare for machine learning:
+```{r}
+
+argIDSparse$Argument = argID$Argument
+```
+
+Set the seed and split corpus into training and testing datasets:
+
+```{r}
+
+set.seed(123)
+split = sample.split(argIDSparse$Argument, SplitRatio = 0.7)
+trainSparse = subset(argIDSparse, split == TRUE)
+testSparse = subset(argIDSparse, split == FALSE)
+```
+
+
+Run rpart classification model on training data:
+
+```{r}
+argIDCART = rpart(Argument ~ ., 
+                  data = trainSparse, 
+                  method = "class")
+```
+
+Inspect the solution:
+
+```
+printcp(argIDCART) # - display cp table
+summary(argIDCART)	
+```
+```{r, eval=TRUE}
+plot(argIDCART)	# - plot the tree
+text(argIDCART)	# - add labels
+prp(argIDCART) # - nicer plot
+```
+
+Plot variable importance for the model using ggplot2().  
+Plot only vairables used in decision tree.  
+*Variables actually used in tree found using summary(argIDCART) above.*
+
+```{r}
+
+df <- data.frame(imp = argIDCART$variable.importance[1:9]) # convert variable importance to data frame
+df2 <- df %>% 
+  tibble::rownames_to_column() %>% 
+  dplyr::rename("variable" = rowname) %>% 
+  dplyr::arrange(imp) %>%
+  dplyr::mutate(variable = forcats::fct_inorder(variable))
+ggplot2::ggplot(df2) +
+  geom_col(aes(x = variable, y = imp),
+           col = "black", show.legend = F) +
+  coord_flip() +
+  scale_fill_grey() +
+  theme_bw()
+```
+
+Make the plot nicer to look at.  
+
+```{r}
+ggplot2::ggplot(df2) +
+  geom_segment(aes(x = variable, y = 0, xend = variable, yend = imp), 
+               size = 1.2, alpha = 0.6) +
+  geom_point(aes(x = variable, y = imp, col = variable), 
+             size = 3.2, show.legend = F) +
+  coord_flip() +
+  theme_bw()
+```
+
+Prune the tree:
+```{r}
+printcp(argIDCART)
+# - optimal value for the CP parameter
+# - note: it is found where xerror has its minimum:
+optCP <- argIDCART$cptable[which.min(argIDCART$cptable[,"xerror"]),"CP"]
+argIDCART_pr <- prune(argIDCART, cp = optCP)
+prp(argIDCART_pr)
+```
+
+Plot variable importance for pruned tree using ggplot2().  
+Again, only plot variables actually used.  
+*Note that in this case the pruned tree and the original model are the same.
+```{r}
+pr_df <- data.frame(imp = argIDCART_pr$variable.importance[1:9]) # convert variable importance to data frame
+pr_plot_df <- pr_df %>% 
+  tibble::rownames_to_column() %>% 
+  dplyr::rename("variable" = rowname) %>% 
+  dplyr::arrange(imp) %>%
+  dplyr::mutate(variable = forcats::fct_inorder(variable))
+ggplot2::ggplot(pr_plot_df) +
+  geom_col(aes(x = variable, y = imp),
+           col = "black", show.legend = F) +
+  coord_flip() +
+  scale_fill_grey() +
+  theme_bw()
+
+ggplot2::ggplot(pr_plot_df) +
+  geom_segment(aes(x = variable, y = 0, xend = variable, yend = imp), 
+               size = 1.2, alpha = 0.6) +
+  geom_point(aes(x = variable, y = imp, col = variable), 
+             size = 3.2, show.legend = F) +
+  coord_flip() +
+  theme_bw()
+```
+
+Use model to predict for test data:
+```{r}
+predictCART = predict(argIDCART, newdata = testSparse, type = "class")
+```
+
+Use model to predict for test data:
+```{r}
+predictCART = predict(argIDCART, 
+                      newdata = testSparse, 
+                      type = "class")
+```
+
+Check prediction accuracy    
+Show confusion matrix table
+```{r}
+cMatrix <- table(testSparse$Argument, predictCART)
+cMatrix
+accuracy <- (cMatrix[1, 1] + cMatrix[2, 2])/sum(cMatrix)
+accuracy
+```
+
+Use prunned tree on test data:
+```{r}
+predictCART_pr = predict(argIDCART_pr, 
+                         newdata = testSparse, 
+                         type = "class")
+```
+Using pruned tree:
+
+* Check prediction accuracy 
+* Show confusion matrix table
+
+```{r}
+cMatrix <- table(testSparse$Argument, predictCART_pr)
+cMatrix
+accuracy <- (cMatrix[1, 1] + cMatrix[2, 2])/sum(cMatrix)
+accuracy
+```
+
+Check how accuracy holds across the different types of "Texts" in the argID data.frame:
+
+```{r}
+argID$Split <- split
+argID_checkTextAcc <- filter(argID, !split)
+argID_checkTextAcc$Prediction <- predictCART_pr
+cMatrixPerText <- lapply(unique(argID_checkTextAcc$Text), 
+                         function(x) {
+                           d <- filter(argID_checkTextAcc, 
+                                       Text == x)
+                           return(table(d$Argument, d$Prediction))
+                         })
+names(cMatrixPerText) <- unique(argID_checkTextAcc$Text)
+```
+
+Inspect: 
+```{r}
+cMatrixPerText$`Test Prep`
+cMatrixPerText$`Meditation One`
+cMatrixPerText$`Meditation Two`
+cMatrixPerText$`Meditation Three`
+cMatrixPerText$`Meditation Six`
+cMatrixPerText$`8500th Session`
+```
+
+## Conclusion and Suggestions:
+
+Inspecting the accuracy across the variety of texts show that the training dataset is skewed heavily toward United Nations Security Council transcripts. The model of the dataset puts a heavier weight on words related to foreign policy rather than on words that are most often used to identify arguments in disciplines like Philosophy or Critical Thinking. The weighting of the words in the decision tree for this model, then, likely makes the model less effective at identifying arguments from text sources other than those related to foreign policy.  
+  
+One suggestion to fix this would be to get more data from other sources and to more evenly distribute the training data across a variety of argument source texts. A model retrained with a better sample of data might yield better results.  
+
+A second suggestion would be to try training a model using *indicator* words such as "because", "therefore", "consequently" and so forth. This approach mirrors the "text book" approach to argument identification which is taught in many Critical Thinking text books and curricula. 
+
+Overall, the project shows potential for using a bag of words approach coupled with decision tree method to identify arguments. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
